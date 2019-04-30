@@ -190,19 +190,24 @@ class TextConvNet:
             _opt = tf.train.AdadeltaOptimizer(learning_rate=self.learning_rate)
             self.opt = _opt.minimize(self.loss, global_step=self.gstep)
 
-    def train_summaries(self):
+    def summaries(self):
         with tf.name_scope('train_summaries'):
-            tf.summary.scalar('train_loss', self.loss)
-            tf.summary.scalar('train_accuracy', self.accuracy)
-            tf.summary.histogram('histogram_train_loss', self.loss)
-            self.train_summary_op = tf.summary.merge_all()
+            train_loss = tf.summary.scalar('train_loss', self.loss)
+            train_accuracy = tf.summary.scalar(
+                'train_accuracy', self.accuracy / self.batch_size)
+            hist_train_loss = tf.summary.histogram(
+                'histogram_train_loss', self.loss)
+            self.train_summary_op = tf.summary.merge(
+                [train_loss, train_accuracy, hist_train_loss])
 
-    def val_summaries(self):
         with tf.name_scope('val_summaries'):
-            tf.summary.scalar('val_loss', self.loss)
-            tf.summary.scalar('val_accuracy', self.accuracy)
-            tf.summary.histogram('histogram_val_loss', self.loss)
-            self.val_summary_op = tf.summary.merge_all()
+            val_loss = tf.summary.scalar('val_loss', self.loss)
+            val_summary = tf.summary.scalar(
+                'val_accuracy', self.accuracy / self.batch_size)
+            hist_val_loss = tf.summary.histogram(
+                'histogram_val_loss', self.loss)
+            self.val_summary_op = tf.summary.merge(
+                [val_loss, val_summary, hist_val_loss])
 
     def eval(self):
         with tf.name_scope('eval'):
@@ -219,8 +224,7 @@ class TextConvNet:
         self.loss()
         self.optimize()
         self.eval()
-        self.train_summaries()
-        self.val_summaries()
+        self.summaries()
 
     def train_one_epoch(self, sess, saver, init, writer, epoch, step):
         start_time = time.time()
@@ -255,9 +259,10 @@ class TextConvNet:
         print('Training accuracy at epoch {0}: {1}'.format(
             epoch, total_correct_preds / self.n_train))
         print('Took: {0} seconds'.format(time.time() - start_time))
+
         return step
 
-    def eval_once(self, sess, init, writer, epoch, step):
+    def eval_once(self, sess, init, writer, epoch, val_step):
         start_time = time.time()
         sess.run(init)
         self.training = False
@@ -268,10 +273,11 @@ class TextConvNet:
             while True:
                 l, accuracy_batch, summaries = sess.run(
                     [self.loss, self.accuracy, self.val_summary_op])
-                writer.add_summary(summaries, global_step=step)
+                writer.add_summary(summaries, global_step=val_step)
                 total_correct_preds = total_correct_preds + accuracy_batch
                 total_loss = total_loss + l
                 n_batches = n_batches + 1
+                val_step = val_step + 1
         except tf.errors.OutOfRangeError:
             pass
 
@@ -281,12 +287,17 @@ class TextConvNet:
             epoch, total_correct_preds / self.n_test))
         print('Took: {0} seconds\n'.format(time.time() - start_time))
 
+        return val_step
+
     def train(self, n_epochs):
         utils.mkdir_safe('.\\checkpoints')
         utils.mkdir_safe('.\\checkpoints\\tcNet_polarity')
 
-        writer = tf.summary.FileWriter(
-            '.\\graphs\\tcNet', tf.get_default_graph())
+        train_writer = tf.summary.FileWriter(
+            '.\\graphs\\tcNet\\train', tf.get_default_graph())
+
+        val_writer = tf.summary.FileWriter(
+            '.\\graphs\\tcNet\\val')
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -298,13 +309,16 @@ class TextConvNet:
             #     saver.restore(sess, ckpt.model_checkpoint_path)
 
             step = self.gstep.eval()
+            val_step = 0
 
             for epoch in range(n_epochs):
                 step = self.train_one_epoch(
-                    sess, saver, self.train_init, writer, epoch, step)
-                self.eval_once(sess, self.val_init, writer, epoch, step)
+                    sess, saver, self.train_init, train_writer, epoch, step)
+                val_step = self.eval_once(
+                    sess, self.val_init, val_writer, epoch, val_step)
 
-        writer.close()
+        train_writer.close()
+        val_writer.close()
 
 
 if __name__ == '__main__':
