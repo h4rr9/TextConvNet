@@ -1,6 +1,6 @@
 # TextConvNet
 
-a convolutional neural network for text based on "A Sensitivity Analysis of (and Practitioners’ Guide to) Convolutional
+a convolutional neural network for text classification based on "A Sensitivity Analysis of (and Practitioners’ Guide to) Convolutional
 Neural Networks for Sentence Classification" and "Convolutional Neural Networks for Sentence Classification"
 
 ## Datasets
