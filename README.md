@@ -9,4 +9,4 @@ The polarity and subjectivity datasets by Pang/Lee were used to train the model
 
 ## Word2vec
 
-place the cbow/skip-gram binary file in /data/word2vec/ (change the file name in preprocssing.py)
+place the Google News word2vec binary file in /data/word2vec/ (change the file name in preprocessing files)
