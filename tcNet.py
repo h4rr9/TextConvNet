@@ -6,42 +6,52 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-def conv_relu(inputs, filters, k_size, stride, padding, scope_name='conv'):
+def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv'):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        in_channels = 1
-        width = inputs.shape[2]
+
+        _inputs = tf.expand_dims(inputs, axis=1)
+        in_channels = _inputs.shape[-1]
 
         kernel = tf.get_variable('kernal',
-                                 [k_size, width, in_channels, filters],
+                                 [k_size, in_channels, filters],
                                  initializer=tf.truncated_normal_initializer())
+
+        _kernel = tf.reshape(kernel, shape=[1, k_size, in_channels, filters])
+
         biases = tf.get_variable('biases',
                                  [filters],
                                  initializer=tf.random_normal_initializer())
 
-        conv = tf.nn.conv2d(inputs,
-                            kernel,
-                            strides=[1, stride, stride, 1],
-                            padding=padding)
+        _conv = tf.nn.conv2d(_inputs,
+                             _kernel,
+                             strides=[1, stride, 1, 1],
+                             padding=padding)
 
-    return tf.nn.relu(conv + biases, name=scope.name)
+        conv = tf.squeeze(_conv, axis=1)
+        output = tf.nn.relu(conv + biases, name=scope.name)
+
+    return output
 
 
-def maxpool(inputs, stride, padding='VALID', scope_name='pool'):
+def one_maxpool(inputs, stride, padding='VALID', scope_name='pool'):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        height = inputs.shape[1]
-        width = inputs.shape[2]
-        pool = tf.nn.max_pool(inputs,
-                              ksize=[1, height, width, 1],
-                              strides=[1, stride, stride, 1],
-                              padding=padding,
-                              name=scope.name)
+
+        _inputs = tf.expand_dims(inputs, axis=1)
+        height, width = _inputs.shape[-2:]
+
+        _pool = tf.nn.max_pool(_inputs,
+                               ksize=[1, 1, height, 1],
+                               strides=[1, 1, stride, 1],
+                               padding=padding,
+                               name=scope.name)
+        pool = tf.squeeze(_pool, axis=1)
 
     return pool
 
 
 def flatten(inputs, scope_name='flatten'):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        feature_dim = inputs.shape[1] * inputs.shape[2] * inputs.shape[3]
+        feature_dim = inputs.shape[1] * inputs.shape[2]
 
         flatten = tf.reshape(inputs, shape=[-1, feature_dim], name=scope.name)
 
@@ -128,41 +138,41 @@ class TextConvNet:
             embed_matrix = tf.get_variable(
                 'embed_matrix', initializer=_embed)
 
-            embed = tf.nn.embedding_lookup(
+            self.embed = tf.nn.embedding_lookup(
                 embed_matrix, self.sentence, name='embed')
 
-            self.embed = tf.reshape(
-                embed, shape=[-1, self.max_sentence_size, 300, 1])
+            # self.embed = tf.reshape(
+            #     embed, shape=[-1, self.max_sentence_size, 300, 1])
 
     def model(self):
-        conv0 = conv_relu(inputs=self.embed,
-                          filters=100,
-                          k_size=3,
-                          stride=1,
-                          padding='VALID',
-                          scope_name='conv0')
-        pool0 = maxpool(inputs=conv0, stride=1,
-                        padding='VALID', scope_name='pool0')
+        conv0 = conv1d_relu(inputs=self.embed,
+                            filters=100,
+                            k_size=3,
+                            stride=1,
+                            padding='VALID',
+                            scope_name='conv0')
+        pool0 = one_maxpool(inputs=conv0, stride=1,
+                            padding='VALID', scope_name='pool0')
         flatten0 = flatten(inputs=pool0, scope_name='flatten0')
 
-        conv1 = conv_relu(inputs=self.embed,
-                          filters=100,
-                          k_size=4,
-                          stride=1,
-                          padding='VALID',
-                          scope_name='conv1')
-        pool1 = maxpool(inputs=conv1, stride=1,
-                        padding='VALID', scope_name='pool1')
+        conv1 = conv1d_relu(inputs=self.embed,
+                            filters=100,
+                            k_size=4,
+                            stride=1,
+                            padding='VALID',
+                            scope_name='conv1')
+        pool1 = one_maxpool(inputs=conv1, stride=1,
+                            padding='VALID', scope_name='pool1')
         flatten1 = flatten(inputs=pool1, scope_name='flatten1')
 
-        conv2 = conv_relu(inputs=self.embed,
-                          filters=100,
-                          k_size=5,
-                          stride=1,
-                          padding='VALID',
-                          scope_name='conv2')
-        pool2 = maxpool(inputs=conv2, stride=1,
-                        padding='VALID', scope_name='pool2')
+        conv2 = conv1d_relu(inputs=self.embed,
+                            filters=100,
+                            k_size=5,
+                            stride=1,
+                            padding='VALID',
+                            scope_name='conv2')
+        pool2 = one_maxpool(inputs=conv2, stride=1,
+                            padding='VALID', scope_name='pool2')
         flatten2 = flatten(inputs=pool2, scope_name='flatten2')
 
         concat0 = concatinate(
@@ -290,20 +300,20 @@ class TextConvNet:
         return val_step
 
     def train(self, n_epochs):
-        utils.mkdir_safe('.\\checkpoints')
-        utils.mkdir_safe('.\\checkpoints\\tcNet_polarity')
+        utils.mkdir_safe('./checkpoints')
+        utils.mkdir_safe('./checkpoints/tcNet_polarity')
 
         train_writer = tf.summary.FileWriter(
-            '.\\graphs\\tcNet\\train', tf.get_default_graph())
+            './graphs/tcNet/train', tf.get_default_graph())
 
         val_writer = tf.summary.FileWriter(
-            '.\\graphs\\tcNet\\val')
+            './graphs/tcNet/val')
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             saver = tf.train.Saver()
             # ckpt = tf.train.get_checkpoint_state(os.path.dirname(
-            #     '.\\checkpoints\\tcNet_polarity\\checkpoint'))
+            #     './checkpoints/tcNet_polarity/checkpoint'))
 
             # if ckpt and ckpt.model_checkpoint_path:
             #     saver.restore(sess, ckpt.model_checkpoint_path)
@@ -324,4 +334,4 @@ class TextConvNet:
 if __name__ == '__main__':
     model = TextConvNet()
     model.build()
-    model.train(n_epochs=10)
+    model.train(n_epochs=100)

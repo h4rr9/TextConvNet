@@ -14,16 +14,18 @@ def mkdir_safe(path):
 
 
 def load_embeddings_polarity():
-    with open('.\\data\processed_data\\embeddings300.pkl_polarity', 'rb') as handle:
+    with open('./data\processed_data/embeddings300_polarity.pkl', 'rb') as handle:
         embeddings_matrix = pk.load(handle)
 
     return embeddings_matrix
+
 
 def load_embeddings_subjectivity():
-    with open('.\\data\processed_data\\embeddings300_subjectivity.pkl', 'rb') as handle:
+    with open('./data\processed_data/embeddings300_subjectivity.pkl', 'rb') as handle:
         embeddings_matrix = pk.load(handle)
 
     return embeddings_matrix
+
 
 def split_pad_sentences(sentences, max_sentence_length):
 
@@ -50,8 +52,8 @@ def encode_sentences(sentences, padding_size, n_samples, path_to_mapping_file):
 
 
 def load_polarity_data():
-    train = pd.read_csv('.\\data\\processed_data\\polarity.csv')
-    path_to_mapping_file = '.\\data\processed_data\\word2index_polarity.pkl'
+    train = pd.read_csv('./data/processed_data/polarity.csv')
+    path_to_mapping_file = './data\processed_data/word2index_polarity.pkl'
     n_samples = len(train)
     X = train['text']
     Y = train['target'].values
@@ -71,8 +73,8 @@ def load_polarity_data():
 
 
 def load_subjectivity_data():
-    train = pd.read_csv('.\\data\\processed_data\\subjectivity.csv')
-    path_to_mapping_file = '.\\data\processed_data\\word2index_subjectivity.pkl'
+    train = pd.read_csv('./data/processed_data/subjectivity.csv')
+    path_to_mapping_file = './data\processed_data/word2index_subjectivity.pkl'
     n_samples = len(train)
     X = train['text']
     Y = train['target'].values

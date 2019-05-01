@@ -169,24 +169,24 @@ print(len(vocab))
 oov = check_coverage(vocab, embeddings_index)
 
 
-# train['text'] = train['text'].progress_apply(
-#     lambda x: replace_typical_misspell(x))
-# sentences = train['text'].apply(lambda x: x.split())
+train['text'] = train['text'].progress_apply(
+    lambda x: replace_typical_misspell(x))
+sentences = train['text'].apply(lambda x: x.split())
 
-# to_remove = ['a', 'to', 'of', 'and']
+to_remove = ['a', 'to', 'of', 'and']
 
-# sentences = [[word for word in sentence if word not in to_remove]
-#              for sentence in tqdm(sentences)]
+sentences = [[word for word in sentence if word not in to_remove]
+             for sentence in tqdm(sentences)]
 
-# vocab = build_vocab(sentences)
+vocab = build_vocab(sentences)
 
-# print('removed stop words and misspellings')
-# print(len(vocab))
-# oov = check_coverage(vocab, embeddings_index)
+print('removed stop words and misspellings')
+print(len(vocab))
+oov = check_coverage(vocab, embeddings_index)
 
 print('reducing embedding matrix to required vocabulary')
 
-valid_words_dim = len(vocab) +1  # for <UNK> <EOF>
+valid_words_dim = len(vocab) + 1  # for <UNK> <EOF>
 
 
 oov_list = [pair[0] for pair in oov]
@@ -212,10 +212,10 @@ valid_words.append('<EOF>')
 embeddings_matrix[valid_word_index] = np.zeros(shape=(300, ), dtype=np.float32)
 valid_word_index_map['<EOF>'] = valid_word_index
 
-with open('.\\data\processed_data\\embeddings300.pkl', 'wb') as f:
+with open('.\\data\processed_data\\embeddings300_polarity.pkl', 'wb') as f:
     pk.dump(embeddings_matrix, f)
 
-with open('.\\data\processed_data\\word2index.pkl', 'wb') as f:
+with open('.\\data\processed_data\\word2index_polarity.pkl', 'wb') as f:
     pk.dump(valid_word_index_map, f)
 
 _sentences = [' '.join(sentence) for sentence in sentences]
