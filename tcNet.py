@@ -81,7 +81,7 @@ def fully_connected(inputs, out_dim, scope_name='fc'):
 
 def Dropout(inputs, rate, scope_name='dropout'):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        dropout = tf.nn.dropout(inputs, rate=rate, name=scope.name)
+        dropout = tf.nn.dropout(inputs, keep_prob=1- rate, name=scope.name)
     return dropout
 
 
@@ -191,7 +191,7 @@ class TextConvNet:
 
     def loss(self):
         with tf.name_scope('loss'):
-            entropy = tf.nn.softmax_cross_entropy_with_logits_v2(
+            entropy = tf.nn.softmax_cross_entropy_with_logits(
                 labels=self.label, logits=self.logits_train)
             self.loss = tf.reduce_mean(entropy, name='loss')
 
