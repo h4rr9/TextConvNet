@@ -2,95 +2,13 @@ import tensorflow as tf
 import time
 import utils
 import os
+import layers
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-
-def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv'):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-
-        _inputs = tf.expand_dims(inputs, axis=1)
-        in_channels = _inputs.shape[-1]
-
-        kernel = tf.get_variable('kernal',
-                                 [k_size, in_channels, filters],
-                                 initializer=tf.truncated_normal_initializer())
-
-        _kernel = tf.reshape(kernel, shape=[1, k_size, in_channels, filters])
-
-        biases = tf.get_variable('biases',
-                                 [filters],
-                                 initializer=tf.random_normal_initializer())
-
-        _conv = tf.nn.conv2d(_inputs,
-                             _kernel,
-                             strides=[1, stride, 1, 1],
-                             padding=padding)
-
-        conv = tf.squeeze(_conv, axis=1)
-        output = tf.nn.relu(conv + biases, name=scope.name)
-
-    return output
-
-
-def one_maxpool(inputs, stride, padding='VALID', scope_name='pool'):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-
-        _inputs = tf.expand_dims(inputs, axis=1)
-        height, width = _inputs.shape[-2:]
-
-        _pool = tf.nn.max_pool(_inputs,
-                               ksize=[1, 1, height, 1],
-                               strides=[1, 1, stride, 1],
-                               padding=padding,
-                               name=scope.name)
-        pool = tf.squeeze(_pool, axis=1)
-
-    return pool
-
-
-def flatten(inputs, scope_name='flatten'):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        feature_dim = inputs.shape[1] * inputs.shape[2]
-
-        flatten = tf.reshape(inputs, shape=[-1, feature_dim], name=scope.name)
-
-    return flatten
-
-
-def concatinate(inputs, scope_name):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        concat = tf.concat(inputs, 1, name=scope.name)
-
-    return concat
-
-
-def fully_connected(inputs, out_dim, scope_name='fc'):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        in_dim = inputs.shape[-1]
-        w = tf.get_variable('weights',
-                            [in_dim, out_dim],
-                            initializer=tf.truncated_normal_initializer())
-
-        b = tf.get_variable('biases', [out_dim],
-                            initializer=tf.constant_initializer(0.0))
-
-        out = tf.add(tf.matmul(inputs, w), b, name=scope.name)
-    return out
-
-
-def Dropout(inputs, rate, scope_name='dropout'):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        dropout = tf.nn.dropout(inputs, keep_prob=1- rate, name=scope.name)
-    return dropout
-
-
-def l2_norm(inputs, alpha, scope_name='l2_norm'):
-    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        norm = alpha * tf.divide(inputs,
-                                 tf.norm(inputs, ord='euclidean'),
-                                 name=scope.name)
-    return norm
+PATH_CHECKPOINTS = './checkpointsc'
+# PATH_CHECKPOINTS = '/scratch/scratch5/harig/tcNet_sub/checkpoints'
+PATH_GRAPHS = './graphs'
+# PATH_GRAPHS = '/scratch/scratch5/harig/tcNet_sub/graphs'
 
 
 class TextConvNet:
@@ -98,7 +16,7 @@ class TextConvNet:
     def __init__(self):
         self.batch_size = 50
         self.learning_rate = 1.0
-        self.l2_contraint = 3
+        self.l2_constraint = 3
         self.gstep = tf.get_variable('global_step',
                                      initializer=tf.constant_initializer(0),
                                      dtype=tf.int32,
@@ -117,7 +35,7 @@ class TextConvNet:
         self.n_test = val[0].shape[0]
 
         train_data = tf.data.Dataset.from_tensor_slices(train)
-        train_data = train_data.shuffle(9595)
+        train_data = train_data.shuffle(self.n_train)
         train_data = train_data.batch(self.batch_size)
 
         val_data = tf.data.Dataset.from_tensor_slices(val)
@@ -145,48 +63,49 @@ class TextConvNet:
             #     embed, shape=[-1, self.max_sentence_size, 300, 1])
 
     def model(self):
-        conv0 = conv1d_relu(inputs=self.embed,
-                            filters=100,
-                            k_size=3,
-                            stride=1,
-                            padding='VALID',
-                            scope_name='conv0')
-        pool0 = one_maxpool(inputs=conv0, stride=1,
-                            padding='VALID', scope_name='pool0')
-        flatten0 = flatten(inputs=pool0, scope_name='flatten0')
+        conv0 = layers.conv1d_relu(inputs=self.embed,
+                                   filters=100,
+                                   k_size=3,
+                                   stride=1,
+                                   padding='VALID',
+                                   scope_name='conv0')
+        pool0 = layers.one_maxpool(inputs=conv0, stride=1,
+                                   padding='VALID', scope_name='pool0')
+        flatten0 = layers.flatten(inputs=pool0, scope_name='flatten0')
 
-        conv1 = conv1d_relu(inputs=self.embed,
-                            filters=100,
-                            k_size=4,
-                            stride=1,
-                            padding='VALID',
-                            scope_name='conv1')
-        pool1 = one_maxpool(inputs=conv1, stride=1,
-                            padding='VALID', scope_name='pool1')
-        flatten1 = flatten(inputs=pool1, scope_name='flatten1')
+        conv1 = layers.conv1d_relu(inputs=self.embed,
+                                   filters=100,
+                                   k_size=4,
+                                   stride=1,
+                                   padding='VALID',
+                                   scope_name='conv1')
+        pool1 = layers.one_maxpool(inputs=conv1, stride=1,
+                                   padding='VALID', scope_name='pool1')
+        flatten1 = layers.flatten(inputs=pool1, scope_name='flatten1')
 
-        conv2 = conv1d_relu(inputs=self.embed,
-                            filters=100,
-                            k_size=5,
-                            stride=1,
-                            padding='VALID',
-                            scope_name='conv2')
-        pool2 = one_maxpool(inputs=conv2, stride=1,
-                            padding='VALID', scope_name='pool2')
-        flatten2 = flatten(inputs=pool2, scope_name='flatten2')
+        conv2 = layers.conv1d_relu(inputs=self.embed,
+                                   filters=100,
+                                   k_size=5,
+                                   stride=1,
+                                   padding='VALID',
+                                   scope_name='conv2')
+        pool2 = layers.one_maxpool(inputs=conv2, stride=1,
+                                   padding='VALID', scope_name='pool2')
+        flatten2 = layers.flatten(inputs=pool2, scope_name='flatten2')
 
-        concat0 = concatinate(
+        concat0 = layers.concatinate(
             inputs=[flatten0, flatten1, flatten2], scope_name='concat0')
 
-        norm0 = l2_norm(concat0, alpha=self.l2_contraint, scope_name='norm0')
+        norm0 = layers.l2_norm(
+            concat0, alpha=self.l2_constraint, scope_name='norm0')
 
-        dropout0 = Dropout(
+        dropout0 = layers.Dropout(
             inputs=norm0, rate=1 - self.keep_prob, scope_name='dropout0')
 
-        self.logits_train = fully_connected(
+        self.logits_train = layers.fully_connected(
             inputs=dropout0, out_dim=self.n_classes, scope_name='fc0')
 
-        self.logits_test = fully_connected(
+        self.logits_test = layers.fully_connected(
             inputs=concat0, out_dim=self.n_classes, scope_name='fc0')
 
     def loss(self):
@@ -262,7 +181,7 @@ class TextConvNet:
         except tf.errors.OutOfRangeError:
             pass
 
-        saver.save(sess, './checkpoints/tcNet_polarity/polarity_tcNet', step)
+        saver.save(sess, PATH_CHECKPOINTS, step)
 
         print('\nAverage training loss at epoch {0}: {1}'.format(
             epoch, total_loss / n_batches))
@@ -300,20 +219,19 @@ class TextConvNet:
         return val_step
 
     def train(self, n_epochs):
-        utils.mkdir_safe('./checkpoints')
-        utils.mkdir_safe('./checkpoints/tcNet_polarity')
+        utils.mkdir_safe(os.path.dirname(PATH_CHECKPOINTS))
+        utils.mkdir_safe(PATH_CHECKPOINTS)
 
         train_writer = tf.summary.FileWriter(
-            './graphs/tcNet/train', tf.get_default_graph())
+            PATH_GRAPHS + '/train', tf.get_default_graph())
 
         val_writer = tf.summary.FileWriter(
-            './graphs/tcNet/val')
+            PATH_GRAPHS + '/val')
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             saver = tf.train.Saver()
-            # ckpt = tf.train.get_checkpoint_state(os.path.dirname(
-            #     './checkpoints/tcNet_polarity/checkpoint'))
+            # ckpt = tf.train.get_checkpoint_state(PATH_CHECKPOINTS))
 
             # if ckpt and ckpt.model_checkpoint_path:
             #     saver.restore(sess, ckpt.model_checkpoint_path)
