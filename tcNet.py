@@ -5,7 +5,7 @@ import os
 import layers
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-PATH_CHECKPOINTS = './checkpointsc'
+PATH_CHECKPOINTS = './checkpoints'
 # PATH_CHECKPOINTS = '/scratch/scratch5/harig/tcNet_sub/checkpoints'
 PATH_GRAPHS = './graphs'
 # PATH_GRAPHS = '/scratch/scratch5/harig/tcNet_sub/graphs'
@@ -19,9 +19,7 @@ class TextConvNet:
         self.l2_constraint = 3
         self.gstep = tf.get_variable('global_step',
                                      initializer=tf.constant_initializer(0),
-                                     dtype=tf.int32,
-                                     trainable=False,
-                                     shape=[])
+                                     dtype=tf.int32, trainable=False, shape=[])
         self.n_classes = 2
         self.skip_step = 20
         self.training = False
@@ -58,9 +56,6 @@ class TextConvNet:
 
             self.embed = tf.nn.embedding_lookup(
                 embed_matrix, self.sentence, name='embed')
-
-            # self.embed = tf.reshape(
-            #     embed, shape=[-1, self.max_sentence_size, 300, 1])
 
     def model(self):
         conv0 = layers.conv1d_relu(inputs=self.embed,
@@ -181,7 +176,7 @@ class TextConvNet:
         except tf.errors.OutOfRangeError:
             pass
 
-        saver.save(sess, PATH_CHECKPOINTS, step)
+        saver.save(sess, PATH_CHECKPOINTS + '/model', step)
 
         print('\nAverage training loss at epoch {0}: {1}'.format(
             epoch, total_loss / n_batches))
