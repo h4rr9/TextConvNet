@@ -20,6 +20,9 @@ class TextConvNet:
         self.gstep = tf.get_variable('global_step',
                                      initializer=tf.constant_initializer(0),
                                      dtype=tf.int32, trainable=False, shape=[])
+        self.vstep = tf.get_variable('validation_step',
+                                     initializer=tf.constant_initializer(0),
+                                     dtype=tf.int32, trainable=False, shape=[])
         self.n_classes = 2
         self.skip_step = 20
         self.training = False
@@ -140,6 +143,9 @@ class TextConvNet:
                 tf.argmax(preds, 1), tf.argmax(self.label, 1))
             self.accuracy = tf.reduce_sum(tf.cast(correct_preds, tf.float32))
 
+            self.increment_vstep = tf.assign_add(
+                self.vstep, 1, name='increment_vstep')
+
     def build(self):
 
         self.import_data()
@@ -150,7 +156,7 @@ class TextConvNet:
         self.eval()
         self.summaries()
 
-    def train_one_epoch(self, sess, saver, init, writer, epoch, step):
+    def train_one_epoch(self, sess, init, writer, epoch, step):
         start_time = time.time()
         sess.run(init)
         self.training = True
@@ -176,8 +182,6 @@ class TextConvNet:
         except tf.errors.OutOfRangeError:
             pass
 
-        saver.save(sess, PATH_CHECKPOINTS + '/model', step)
-
         print('\nAverage training loss at epoch {0}: {1}'.format(
             epoch, total_loss / n_batches))
         print('Training accuracy at epoch {0}: {1}'.format(
@@ -186,7 +190,7 @@ class TextConvNet:
 
         return step
 
-    def eval_once(self, sess, init, writer, epoch, val_step):
+    def eval_once(self, sess, saver, init, writer, epoch, val_step):
         start_time = time.time()
         sess.run(init)
         self.training = False
@@ -195,8 +199,8 @@ class TextConvNet:
         n_batches = 0
         try:
             while True:
-                l, accuracy_batch, summaries = sess.run(
-                    [self.loss, self.accuracy, self.val_summary_op])
+                _, l, accuracy_batch, summaries = sess.run(
+                    [self.increment_vstep, self.loss, self.accuracy, self.val_summary_op])
                 writer.add_summary(summaries, global_step=val_step)
                 total_correct_preds = total_correct_preds + accuracy_batch
                 total_loss = total_loss + l
@@ -204,6 +208,8 @@ class TextConvNet:
                 val_step = val_step + 1
         except tf.errors.OutOfRangeError:
             pass
+
+        saver.save(sess, PATH_CHECKPOINTS + '/model', self.gstep)
 
         print('Average validation loss at epoch {0}: {1}'.format(
             epoch, total_loss / n_batches))
@@ -226,19 +232,19 @@ class TextConvNet:
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             saver = tf.train.Saver()
-            # ckpt = tf.train.get_checkpoint_state(PATH_CHECKPOINTS))
+            ckpt = tf.train.get_checkpoint_state(PATH_CHECKPOINTS)
 
-            # if ckpt and ckpt.model_checkpoint_path:
-            #     saver.restore(sess, ckpt.model_checkpoint_path)
+            if ckpt and ckpt.model_checkpoint_path:
+                saver.restore(sess, ckpt.model_checkpoint_path)
 
             step = self.gstep.eval()
-            val_step = 0
+            val_step = self.vstep.eval()
 
             for epoch in range(n_epochs):
                 step = self.train_one_epoch(
-                    sess, saver, self.train_init, train_writer, epoch, step)
+                    sess, self.train_init, train_writer, epoch, step)
                 val_step = self.eval_once(
-                    sess, self.val_init, val_writer, epoch, val_step)
+                    sess, saver, self.val_init, val_writer, epoch, val_step)
 
         train_writer.close()
         val_writer.close()
@@ -247,4 +253,4 @@ class TextConvNet:
 if __name__ == '__main__':
     model = TextConvNet()
     model.build()
-    model.train(n_epochs=100)
+    model.train(n_epochs=5)
