@@ -10,6 +10,10 @@ PATH_CHECKPOINTS = './checkpoints'
 PATH_GRAPHS = './graphs'
 # PATH_GRAPHS = '/scratch/scratch5/harig/tcNet_sub/graphs'
 
+config = tf.ConfigProto()
+config.intra_op_parallelism_threads = 4
+config.inter_op_parallelism_threads = 4
+
 
 class TextConvNet:
 
@@ -236,7 +240,7 @@ class TextConvNet:
         val_writer = tf.summary.FileWriter(
             PATH_GRAPHS + '/val')
 
-        with tf.Session() as sess:
+        with tf.Session(config=config) as sess:
             sess.run(tf.global_variables_initializer())
             saver = tf.train.Saver()
             ckpt = tf.train.get_checkpoint_state(PATH_CHECKPOINTS)
