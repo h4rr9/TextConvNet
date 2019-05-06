@@ -62,9 +62,9 @@ def load_polarity_data():
 
     padding_size = np.max(train['text'].apply(lambda x: len(x.split())).values)
 
-    X = split_pad_sentences(X, padding_size + 1)
+    X = split_pad_sentences(X, padding_size)
 
-    X = encode_sentences(X, padding_size + 1, n_samples, path_to_mapping_file)
+    X = encode_sentences(X, padding_size, n_samples, path_to_mapping_file)
 
     X_train, X_test, Y_train, Y_test = train_test_split(
         X, Y, test_size=0.1, random_state=42, shuffle=True)
@@ -83,9 +83,9 @@ def load_subjectivity_data():
 
     padding_size = np.max(train['text'].apply(lambda x: len(x.split())).values)
 
-    X = split_pad_sentences(X, padding_size + 1)
+    X = split_pad_sentences(X, padding_size)
 
-    X = encode_sentences(X, padding_size + 1, n_samples, path_to_mapping_file)
+    X = encode_sentences(X, padding_size, n_samples, path_to_mapping_file)
 
     X_train, X_test, Y_train, Y_test = train_test_split(
         X, Y, test_size=0.1, random_state=42, shuffle=True)

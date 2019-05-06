@@ -15,7 +15,9 @@ class TextConvNet:
 
     def __init__(self):
         self.batch_size = 50
-        self.learning_rate = 1.0
+        self.learning_rate = 1e-3
+        self.rho = 0.95
+        self.epsilon = 1e-6
         self.l2_constraint = 3
         self.gstep = tf.get_variable('global_step',
                                      initializer=tf.constant_initializer(0),
@@ -26,7 +28,7 @@ class TextConvNet:
         self.n_classes = 2
         self.skip_step = 20
         self.training = False
-        self.keep_prob = tf.constant(0.5)
+        self.keep_prob = 0.5
 
     def import_data(self):
         train, val = utils.load_subjectivity_data()
@@ -94,11 +96,10 @@ class TextConvNet:
         concat0 = layers.concatinate(
             inputs=[flatten0, flatten1, flatten2], scope_name='concat0')
 
-        norm0 = layers.l2_norm(
-            concat0, alpha=self.l2_constraint, scope_name='norm0')
+        # norm0 = layers.l2_norm(concat0, alpha=self.l2_constraint, scope_name='norm0')
 
         dropout0 = layers.Dropout(
-            inputs=norm0, rate=1 - self.keep_prob, scope_name='dropout0')
+            inputs=concat0, rate=1 - self.keep_prob, scope_name='dropout0')
 
         self.logits_train = layers.fully_connected(
             inputs=dropout0, out_dim=self.n_classes, scope_name='fc0')
@@ -110,11 +111,17 @@ class TextConvNet:
         with tf.name_scope('loss'):
             entropy = tf.nn.softmax_cross_entropy_with_logits(
                 labels=self.label, logits=self.logits_train)
-            self.loss = tf.reduce_mean(entropy, name='loss')
+            loss = tf.reduce_mean(entropy, name='loss')
+
+            vars = [v for v in tf.trainable_variables() if 'fc' in v.name]
+
+            l2_norm = tf.add_n([tf.nn.l2_loss(v) for v in vars])
+            self.loss = loss + self.l2_constraint * l2_norm
 
     def optimize(self):
         with tf.name_scope('optimize'):
-            _opt = tf.train.AdadeltaOptimizer(learning_rate=self.learning_rate)
+            _opt = tf.train.AdadeltaOptimizer(
+                learning_rate=self.learning_rate, epsilon=self.epsilon, rho=self.rho)
             self.opt = _opt.minimize(self.loss, global_step=self.gstep)
 
     def summaries(self):
@@ -253,4 +260,4 @@ class TextConvNet:
 if __name__ == '__main__':
     model = TextConvNet()
     model.build()
-    # model.train(n_epochs=5)
+    model.train(n_epochs=500)
