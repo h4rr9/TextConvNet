@@ -6,7 +6,7 @@ def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv'):
 
         in_channels = inputs.shape[-1]
 
-        kernel = tf.get_variable('kernal',
+        kernel = tf.get_variable('kernel',
                                  [k_size, in_channels, filters],
                                  initializer=tf.truncated_normal_initializer())
 

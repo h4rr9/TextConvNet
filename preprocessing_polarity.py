@@ -72,73 +72,28 @@ def check_coverage(vocab, embeddings_index):
     return sorted_x
 
 
-def clean_text(x):
-    x = str(x)
+def clean_text(string):
+    string = re.sub("[^A-Za-z0-9(),!?\'\`]", " ", string)
+    string = re.sub("\'s", " \'s", string)
+    string = re.sub("\'ve", " \'ve", string)
+    string = re.sub("n\'t", " n\'t", string)
+    string = re.sub("\'re", " \'re", string)
+    string = re.sub("\'d", " \'d", string)
+    string = re.sub("\'ll", " \'ll", string)
+    string = re.sub(",", " , ", string)
+    string = re.sub("!", " ! ", string)
+    string = re.sub("\(", " \( ", string)
+    string = re.sub("\)", " \) ", string)
+    string = re.sub("\?", " \? ", string)
+    string = re.sub("\s{2,}", " ", string)
 
-    for punct in '/-':
-        x = x.replace(punct, ' ')
-
-    for punct in '.,"#$%\'()*+-/:;<=>@[\\]^_`{|}~' + '“”’' + chr(8211) + chr(8212):
-        x = x.replace(punct, '')
-
-    return x
-
-
-def clean_numbers(x):
-    "cleans string of numbers to make it suitable for word2vec"
-    x = re.sub('[0-9]{5,}', '#####', x)
-    x = re.sub('[0-9]{4}', '####', x)
-    x = re.sub('[0-9]{3}', '###', x)
-    x = re.sub('[0-9]{2}', '##', x)
-
-    return x
-
-
-def _get_mispell(mispell_dict):
-    mispell_re = re.compile('(%s)' % '|'.join(mispell_dict.keys()))
-    return mispell_dict, mispell_re
-
-
-mispell_dict = {'colour': 'color',
-                'centre': 'center',
-                'didnt': 'did not',
-                'doesnt': 'does not',
-                'hasnt': 'has not',
-                'wasnt': 'was not',
-                'isnt': 'is not',
-                'shouldnt': 'should not',
-                'favourite': 'favorite',
-                'travelling': 'traveling',
-                'counselling': 'counseling',
-                'theatre': 'theater',
-                'cancelled': 'canceled',
-                'labour': 'labor',
-                'organisation': 'organization',
-                'wwii': 'world war 2',
-                'citicise': 'criticize',
-                'instagram': 'social medium',
-                'whatsapp': 'social medium',
-                'snapchat': 'social medium',
-                'humour': 'humor',
-                'aint': 'am not'
-
-                }
-
-mispellings, mispellings_re = _get_mispell(mispell_dict)
-
-
-def replace_typical_misspell(text):
-    def replace(match):
-        return mispellings[match.group(0)]
-    return mispellings_re.sub(replace, text)
-
+    return string.strip().lower()
 
 train = file2DataFrame('.\\data\\polarity_dataset')
 
 sentences = train['text'].progress_apply(lambda x: x.split()).values
 vocab = build_vocab(sentences)
 
-# print({k: vocab[k] for k in list(vocab)[:5]})
 print('Loading word2vec model')
 start = time.time()
 
@@ -150,37 +105,13 @@ print('no processing')
 print(len(vocab))
 oov = check_coverage(vocab, embeddings_index)
 
+print('preprocessing')
+
 train['text'] = train['text'].progress_apply(lambda x: clean_text(x))
 sentences = train['text'].apply(lambda x: x.split())
 
 vocab = build_vocab(sentences)
 
-print('removed punctuation')
-print(len(vocab))
-oov = check_coverage(vocab, embeddings_index)
-
-train['text'] = train['text'].progress_apply(
-    lambda x: clean_numbers(x))
-sentences = train['text'].apply(lambda x: x.split())
-vocab = build_vocab(sentences)
-
-print('fixed numbers to #')
-print(len(vocab))
-oov = check_coverage(vocab, embeddings_index)
-
-
-train['text'] = train['text'].progress_apply(
-    lambda x: replace_typical_misspell(x))
-sentences = train['text'].apply(lambda x: x.split())
-
-to_remove = ['a', 'to', 'of', 'and']
-
-sentences = [[word for word in sentence if word not in to_remove]
-             for sentence in tqdm(sentences)]
-
-vocab = build_vocab(sentences)
-
-print('removed stop words and misspellings')
 print(len(vocab))
 oov = check_coverage(vocab, embeddings_index)
 

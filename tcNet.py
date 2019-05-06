@@ -253,4 +253,4 @@ class TextConvNet:
 if __name__ == '__main__':
     model = TextConvNet()
     model.build()
-    model.train(n_epochs=5)
+    # model.train(n_epochs=5)
