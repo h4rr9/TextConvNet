@@ -30,7 +30,8 @@ class TextConvNet:
         self.n_classes = 2
         self.skip_step = 20
         self.training = False
-        self.keep_prob = 0.5
+        self.keep_prob_val = 0.5
+        self.keep_prob = tf.placeholder(name='keep_prob',shape=[], dtype=tf.float32)
         self.best_acc = 0
 
     def import_data(self):
@@ -66,15 +67,43 @@ class TextConvNet:
                 embed_matrix, self.sentence, name='embed')
 
     def model(self):
+        # conv0 = layers.conv1d_relu(inputs=self.embed,
+        #                            filters=100,
+        #                            k_size=3,
+        #                            stride=1,
+        #                            padding='VALID',
+        #                            scope_name='conv0')
+        # pool0 = layers.maxpool1d(inputs=conv0, k_size=2,
+        #                          padding='VALID', scope_name='pool0')
+
+        # conv1 = layers.conv1d_relu(inputs=pool0,
+        #                            filters=100,
+        #                            k_size=3,
+        #                            stride=1,
+        #                            padding='VALID',
+        #                            scope_name='conv1')
+        # pool1 = layers.maxpool1d(inputs=conv1, k_size=2,
+        #                          padding='VALID', scope_name='pool1')
+
+        # conv2 = layers.conv1d_relu(inputs=pool1,
+        #                            filters=100,
+        #                            k_size=3,
+        #                            stride=1,
+        #                            padding='VALID',
+        #                            scope_name='conv2')
+        # pool2 = layers.maxpool1d(inputs=conv2, k_size=2,
+        #                          padding='VALID', scope_name='pool2')
+
         conv0 = layers.conv1d_relu(inputs=self.embed,
                                    filters=100,
                                    k_size=3,
                                    stride=1,
                                    padding='VALID',
                                    scope_name='conv0')
-        pool0 = layers.one_maxpool(inputs=conv0, stride=1,
+        pool0 = layers.one_maxpool(inputs=conv0,
                                    padding='VALID', scope_name='pool0')
-        flatten0 = layers.flatten(inputs=pool0, scope_name='flatten0')
+
+        flatten0 = layers.flatten(pool0, scope_name='flatten0')
 
         conv1 = layers.conv1d_relu(inputs=self.embed,
                                    filters=100,
@@ -82,9 +111,10 @@ class TextConvNet:
                                    stride=1,
                                    padding='VALID',
                                    scope_name='conv1')
-        pool1 = layers.one_maxpool(inputs=conv1, stride=1,
+        pool1 = layers.one_maxpool(inputs=conv1,
                                    padding='VALID', scope_name='pool1')
-        flatten1 = layers.flatten(inputs=pool1, scope_name='flatten1')
+
+        flatten1 = layers.flatten(pool1, scope_name='flatten1')
 
         conv2 = layers.conv1d_relu(inputs=self.embed,
                                    filters=100,
@@ -92,28 +122,24 @@ class TextConvNet:
                                    stride=1,
                                    padding='VALID',
                                    scope_name='conv2')
-        pool2 = layers.one_maxpool(inputs=conv2, stride=1,
+        pool2 = layers.one_maxpool(inputs=conv2,
                                    padding='VALID', scope_name='pool2')
+
         flatten2 = layers.flatten(inputs=pool2, scope_name='flatten2')
 
         concat0 = layers.concatinate(
             inputs=[flatten0, flatten1, flatten2], scope_name='concat0')
 
-        # norm0 = layers.l2_norm(concat0, alpha=self.l2_constraint, scope_name='norm0')
-
         dropout0 = layers.Dropout(
             inputs=concat0, rate=1 - self.keep_prob, scope_name='dropout0')
 
-        self.logits_train = layers.fully_connected(
+        self.logits = layers.fully_connected(
             inputs=dropout0, out_dim=self.n_classes, scope_name='fc0')
-
-        self.logits_test = layers.fully_connected(
-            inputs=concat0, out_dim=self.n_classes, scope_name='fc0')
 
     def loss(self):
         with tf.name_scope('loss'):
             entropy = tf.nn.softmax_cross_entropy_with_logits(
-                labels=self.label, logits=self.logits_train)
+                labels=self.label, logits=self.logits)
             loss = tf.reduce_mean(entropy, name='loss')
 
             vars = [v for v in tf.trainable_variables() if 'fc' in v.name]
@@ -148,7 +174,7 @@ class TextConvNet:
 
     def eval(self):
         with tf.name_scope('eval'):
-            preds = tf.nn.softmax(self.logits_test)
+            preds = tf.nn.softmax(self.logits)
             correct_preds = tf.equal(
                 tf.argmax(preds, 1), tf.argmax(self.label, 1))
             self.accuracy = tf.reduce_sum(tf.cast(correct_preds, tf.float32))
@@ -180,7 +206,7 @@ class TextConvNet:
                     [self.opt,
                      self.loss,
                      self.accuracy,
-                     self.train_summary_op])
+                     self.train_summary_op], feed_dict={self.keep_prob: self.keep_prob_val})
                 writer.add_summary(summaries, global_step=step)
 
                 if (step + 1) % self.skip_step == 0:
@@ -210,7 +236,7 @@ class TextConvNet:
         try:
             while True:
                 _, l, accuracy_batch, summaries = sess.run(
-                    [self.increment_vstep, self.loss, self.accuracy, self.val_summary_op])
+                    [self.increment_vstep, self.loss, self.accuracy, self.val_summary_op], feed_dict={self.keep_prob: 1.0})
                 writer.add_summary(summaries, global_step=val_step)
                 total_correct_preds = total_correct_preds + accuracy_batch
                 total_loss = total_loss + l
@@ -225,7 +251,8 @@ class TextConvNet:
             self.best_acc = total_correct_preds / self.n_test
             best_saver.save(sess, PATH_CHECKPOINTS + '/best_model', self.gstep)
         else:
-            print('\nBest Accuracy unchanged from : {0}\n'.format(self.best_acc))
+            print('\nBest Accuracy unchanged from : {0}\n'.format(
+                self.best_acc))
         saver.save(sess, PATH_CHECKPOINTS + '/model', self.gstep)
 
         print('Average validation loss at epoch {0}: {1}'.format(

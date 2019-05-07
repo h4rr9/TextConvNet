@@ -24,20 +24,27 @@ def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv'):
     return output
 
 
-def one_maxpool(inputs, stride, padding='VALID', scope_name='pool'):
+def one_maxpool(inputs, padding='VALID', scope_name='one-pool1d'):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
 
-        _inputs = tf.expand_dims(inputs, axis=1)
-        height, width = _inputs.shape[-2:]
+        height, in_channel = inputs.shape[-2:]
 
-        _pool = tf.nn.max_pool(_inputs,
-                               ksize=[1, 1, height, 1],
-                               strides=[1, 1, stride, 1],
-                               padding=padding,
-                               name=scope.name)
-        pool = tf.squeeze(_pool, axis=1)
+        pool = tf.nn.pool(input=inputs, window_shape=[
+                          height], pooling_type='MAX', padding=padding, strides=[1], name=scope.name)
 
     return pool
+
+
+def maxpool1d(inputs, k_size, stride=None, padding='VALID', scope_name='pool1d'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+
+        if stride is None:
+            stride = k_size
+
+        pool = tf.nn.pool(input=inputs, window_shape=[
+                          k_size], pooling_type='MAX', padding=padding, strides=[stride], name=scope.name)
+
+        return pool
 
 
 def flatten(inputs, scope_name='flatten'):
