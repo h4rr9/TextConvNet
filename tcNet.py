@@ -19,9 +19,7 @@ class TextConvNet:
 
     def __init__(self):
         self.batch_size = 50
-        self.learning_rate = 1e-3
-        self.rho = 0.95
-        self.epsilon = 1e-6
+        self.learning_rate = 1
         self.l2_constraint = 3
         self.gstep = tf.get_variable('global_step',
                                      initializer=tf.constant_initializer(0),
@@ -33,6 +31,7 @@ class TextConvNet:
         self.skip_step = 20
         self.training = False
         self.keep_prob = 0.5
+        self.best_acc = 0
 
     def import_data(self):
         train, val = utils.load_subjectivity_data()
@@ -125,7 +124,7 @@ class TextConvNet:
     def optimize(self):
         with tf.name_scope('optimize'):
             _opt = tf.train.AdadeltaOptimizer(
-                learning_rate=self.learning_rate, epsilon=self.epsilon, rho=self.rho)
+                learning_rate=self.learning_rate)
             self.opt = _opt.minimize(self.loss, global_step=self.gstep)
 
     def summaries(self):
@@ -201,7 +200,7 @@ class TextConvNet:
 
         return step
 
-    def eval_once(self, sess, saver, init, writer, epoch, val_step):
+    def eval_once(self, sess, best_saver, saver, init, writer, epoch, val_step):
         start_time = time.time()
         sess.run(init)
         self.training = False
@@ -220,6 +219,13 @@ class TextConvNet:
         except tf.errors.OutOfRangeError:
             pass
 
+        if self.best_acc < total_correct_preds / self.n_test:
+            print('\nSaving best accuracy: {0} from {1}\n'.format(
+                total_correct_preds / self.n_test, self.best_acc))
+            self.best_acc = total_correct_preds / self.n_test
+            best_saver.save(sess, PATH_CHECKPOINTS + '/best_model', self.gstep)
+        else:
+            print('\nBest Accuracy unchanged from : {0}\n'.format(self.best_acc))
         saver.save(sess, PATH_CHECKPOINTS + '/model', self.gstep)
 
         print('Average validation loss at epoch {0}: {1}'.format(
@@ -243,6 +249,7 @@ class TextConvNet:
         with tf.Session(config=config) as sess:
             sess.run(tf.global_variables_initializer())
             saver = tf.train.Saver()
+            best_saver = tf.train.Saver(max_to_keep=1)
             ckpt = tf.train.get_checkpoint_state(PATH_CHECKPOINTS)
 
             if ckpt and ckpt.model_checkpoint_path:
@@ -255,7 +262,7 @@ class TextConvNet:
                 step = self.train_one_epoch(
                     sess, self.train_init, train_writer, epoch, step)
                 val_step = self.eval_once(
-                    sess, saver, self.val_init, val_writer, epoch, val_step)
+                    sess, best_saver, saver, self.val_init, val_writer, epoch, val_step)
 
         train_writer.close()
         val_writer.close()
@@ -264,4 +271,4 @@ class TextConvNet:
 if __name__ == '__main__':
     model = TextConvNet()
     model.build()
-    model.train(n_epochs=500)
+    model.train(n_epochs=100)
