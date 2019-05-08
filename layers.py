@@ -1,19 +1,25 @@
 import tensorflow as tf
 
 
-def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv'):
+def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv', _weights=None):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
 
         in_channels = inputs.shape[-1]
 
-        kernel = tf.get_variable('kernel',
-                                 [k_size, in_channels, filters],
-                                 initializer=tf.truncated_normal_initializer())
+        if _weights is None:
+            kernel = tf.get_variable('kernel',
+                                     [k_size, in_channels, filters],
+                                     initializer=tf.truncated_normal_initializer())
 
-        biases = tf.get_variable('biases',
-                                 [filters],
-                                 initializer=tf.random_normal_initializer())
+            biases = tf.get_variable('biases',
+                                     [filters],
+                                     initializer=tf.random_normal_initializer())
+        else:
+            kernel = tf.get_variable(
+                'kernel', initializer=tf.constant(_weights[0]))
 
+            biases = tf.get_variable(
+                'biases', initializer=tf.constant(_weights[1]))
         conv = tf.nn.conv1d(inputs,
                             kernel,
                             stride=stride,
@@ -63,15 +69,24 @@ def concatinate(inputs, scope_name):
     return concat
 
 
-def fully_connected(inputs, out_dim, scope_name='fc'):
+def fully_connected(inputs, out_dim, scope_name='fc', _weights=None):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
-        in_dim = inputs.shape[-1]
-        w = tf.get_variable('weights',
-                            [in_dim, out_dim],
-                            initializer=tf.truncated_normal_initializer())
 
-        b = tf.get_variable('biases', [out_dim],
-                            initializer=tf.constant_initializer(0.0))
+        if _weights is None:
+            in_dim = inputs.shape[-1]
+            w = tf.get_variable('weights',
+                                [in_dim, out_dim],
+                                initializer=tf.truncated_normal_initializer())
+
+            b = tf.get_variable('biases', [out_dim],
+                                initializer=tf.constant_initializer(0.0))
+        else:
+            w = tf.get_variable(
+                'weights', initializer=tf.constant(_weights[0]))
+
+            biases = tf.get_variable(
+                'biases', initializer=tf.constant(_weights[1]))
+
 
         out = tf.add(tf.matmul(inputs, w), b, name=scope.name)
     return out

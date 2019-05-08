@@ -134,7 +134,7 @@ for word in vocab.keys():
         valid_word_index_map[word] = valid_word_index
         valid_word_index = valid_word_index + 1
     else:
-        embeddings_matrix[valid_word_index] = np.random.random(300)
+        embeddings_matrix[valid_word_index] = np.random.uniform(-0.25,0.25,300)
         valid_words.append(word)
         valid_word_index_map[word] = valid_word_index
         valid_word_index = valid_word_index + 1
