@@ -5,7 +5,7 @@ Neural Networks for Sentence Classification" and "Convolutional Neural Networks 
 
 ## Datasets
 
-The polarity and subjectivity datasets by Pang/Lee were used to train the model
+The polarity, subjectivity datasets by Pang/Lee and the SST binary dataset were used to train the model
 
 ## Word2vec
 

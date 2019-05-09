@@ -44,7 +44,7 @@ class TextConvNet:
                                      dtype=tf.int32, trainable=False, shape=[])
 
     def import_data(self):
-        train, val = utils.load_subjectivity_data()
+        train, val = utils.load_sst2_data()
 
         self.max_sentence_size = train[0].shape[1]
         self.n_train = train[0].shape[0]
@@ -69,7 +69,7 @@ class TextConvNet:
         with tf.name_scope('embed'):
 
             if _weights is None:
-                embedding_matrix = utils.load_embeddings_subjectivity()
+                embedding_matrix = utils.load_embeddings_sst2()
                 _embed = tf.constant(embedding_matrix)
                 embed_matrix = tf.get_variable(
                     'embed_matrix', initializer=_embed)
