@@ -14,9 +14,21 @@ PATH_GRAPHS = './graphs'
 PATH_BEST_WEIGHTS = './best_weights'
 # PATH_BEST_WEIGHTS = '../Trained Weights/tc-sub-data/checkpoints'
 
+DATASET = 'sub'
+
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = 4
 config.inter_op_parallelism_threads = 4
+
+if DATASET == 'sub':
+    load_data = utils.load_subjectivity_data
+    load_embeddings = utils.load_embeddings_subjectivity
+elif DATASET == 'pol':
+    load_data = utils.load_polarity_data
+    load_embeddings = utils.load_embeddings_polarity
+elif DATASET == 'sst2':
+    load_data = utils.load_sst2_data
+    load_embeddings = utils.load_embeddings_sst2
 
 
 class TextConvNet:
@@ -44,7 +56,7 @@ class TextConvNet:
                                      dtype=tf.int32, trainable=False, shape=[])
 
     def import_data(self):
-        train, val = utils.load_sst2_data()
+        train, val = load_data()
 
         self.max_sentence_size = train[0].shape[1]
         self.n_train = train[0].shape[0]
@@ -69,7 +81,7 @@ class TextConvNet:
         with tf.name_scope('embed'):
 
             if _weights is None:
-                embedding_matrix = utils.load_embeddings_sst2()
+                embedding_matrix = load_embeddings()
                 _embed = tf.constant(embedding_matrix)
                 embed_matrix = tf.get_variable(
                     'embed_matrix', initializer=_embed)
