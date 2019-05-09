@@ -83,41 +83,44 @@ class TextConvNet:
 
     def model(self):
 
-        conv0 = layers.conv1d_relu(inputs=self.embed,
-                                   filters=100,
-                                   k_size=3,
-                                   stride=1,
-                                   padding='SAME',
-                                   scope_name='conv0')
-        pool0 = layers.one_maxpool(inputs=conv0,
-                                   padding='VALID', scope_name='pool0')
+        conv0 = layers.conv1d(inputs=self.embed,
+                              filters=100,
+                              k_size=3,
+                              stride=1,
+                              padding='SAME',
+                              scope_name='conv0')
+        relu0 = layers.relu(inputs=conv0, scope_name='relu0')
+        pool0 = layers.one_maxpool(
+            inputs=relu0, padding='VALID', scope_name='pool0')
 
-        flatten0 = layers.flatten(pool0, scope_name='flatten0')
+        flatten0 = layers.flatten(inputs=pool0, scope_name='flatten0')
 
-        conv1 = layers.conv1d_relu(inputs=self.embed,
-                                   filters=100,
-                                   k_size=4,
-                                   stride=1,
-                                   padding='SAME',
-                                   scope_name='conv1')
-        pool1 = layers.one_maxpool(inputs=conv1,
-                                   padding='VALID', scope_name='pool1')
+        conv1 = layers.conv1d(inputs=self.embed,
+                              filters=100,
+                              k_size=4,
+                              stride=1,
+                              padding='SAME',
+                              scope_name='conv1')
+        relu1 = layers.relu(inputs=conv1, scope_name='relu0')
+        pool1 = layers.one_maxpool(
+            inputs=relu1, padding='VALID', scope_name='pool1')
 
-        flatten1 = layers.flatten(pool1, scope_name='flatten1')
+        flatten1 = layers.flatten(inputs=pool1, scope_name='flatten1')
 
-        conv2 = layers.conv1d_relu(inputs=self.embed,
-                                   filters=100,
-                                   k_size=5,
-                                   stride=1,
-                                   padding='SAME',
-                                   scope_name='conv2')
-        pool2 = layers.one_maxpool(inputs=conv2,
-                                   padding='VALID', scope_name='pool2')
+        conv2 = layers.conv1d(inputs=self.embed,
+                              filters=100,
+                              k_size=5,
+                              stride=1,
+                              padding='SAME',
+                              scope_name='conv2')
+        relu2 = layers.relu(inputs=conv2, scope_name='relu0')
+        pool2 = layers.one_maxpool(
+            inputs=relu2, padding='VALID', scope_name='pool2')
 
         flatten2 = layers.flatten(inputs=pool2, scope_name='flatten2')
 
         concat0 = layers.concatinate(
-            inputs=[flatten0, flatten1, flatten2], scope_name='concat0')
+            [flatten0, flatten1, flatten2], scope_name='concat0')
 
         dropout0 = layers.Dropout(
             inputs=concat0, rate=1 - self.keep_prob, scope_name='dropout0')

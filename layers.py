@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv', _weights=None):
+def conv1d(inputs, filters, k_size, stride, padding, scope_name='conv', _weights=None):
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
 
         in_channels = inputs.shape[-1]
@@ -25,9 +25,51 @@ def conv1d_relu(inputs, filters, k_size, stride, padding, scope_name='conv', _we
                             stride=stride,
                             padding=padding)
 
-        output = tf.nn.relu(conv + biases, name=scope.name)
+        output = tf.add(conv, biases, name=scope.name)
 
     return output
+
+
+def relu(inputs, scope_name='relu'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _relu = tf.nn.relu(inputs, name=scope.name)
+    return _relu
+
+
+def elu(inputs, scope_name='elu'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _elu = tf.nn.elu(inputs, name=scope.name)
+    return _elu
+
+
+def leaky_relu(inputs, scope_name='leaky_relu'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _leaky_relu = tf.nn.leaky_relu(inputs, name=scope.name)
+    return _leaky_relu
+
+
+def softplus(inputs, scope_name='softplus'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _softplus = tf.nn.softplus(inputs, name=scope.name)
+    return _softplus
+
+
+def softsign(inputs, scope_name='softsign'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _softsign = tf.nn.softsign(inputs, name=scope.name)
+    return _softsign
+
+
+def sigmoid(inputs, scope_name='sigmoid'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _sigmoid = tf.nn.sigmoid(inputs, name=scope.name)
+    return _sigmoid
+
+
+def tanh(inputs, scope_name='tanh'):
+    with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE) as scope:
+        _tanh = tf.nn.tanh(inputs, name=scope.name)
+    return _tanh
 
 
 def one_maxpool(inputs, padding='VALID', scope_name='one-pool1d'):
@@ -86,7 +128,6 @@ def fully_connected(inputs, out_dim, scope_name='fc', _weights=None):
 
             biases = tf.get_variable(
                 'biases', initializer=tf.constant(_weights[1]))
-
 
         out = tf.add(tf.matmul(inputs, w), b, name=scope.name)
     return out
