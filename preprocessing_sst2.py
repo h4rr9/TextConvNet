@@ -12,9 +12,9 @@ tqdm.pandas()
 
 def file2DataFrame(path):
     "saves the polarity dataset into a csv file for easy processing"
-    test_file = open(path + '\\' + 'sst.binary.test', 'r')
-    dev_file = open(path + '\\' + 'sst.binary.dev', 'r')
-    train_file = open(path + '\\' + 'sst.binary.train')
+    test_file = open(path + "\\" + "sst.binary.test", "r")
+    dev_file = open(path + "\\" + "sst.binary.dev", "r")
+    train_file = open(path + "\\" + "sst.binary.train")
 
     test_data = [(line[0], line[1:].strip()) for line in test_file]
     dev_data = [(line[0], line[1:].strip()) for line in dev_file]
@@ -34,8 +34,7 @@ def file2DataFrame(path):
 
     sentiment = np.array(target, dtype=np.float32)
 
-    data = pd.DataFrame({'text': text, 'target': sentiment},
-                        columns=['text', 'target'])
+    data = pd.DataFrame({"text": text, "target": sentiment}, columns=["text", "target"])
 
     return data
 
@@ -72,8 +71,8 @@ def check_coverage(vocab, embeddings_index):
             i += vocab[word]
             pass
 
-    print('Found embeddings for {:.2%} of vocab'.format(len(a) / len(vocab)))
-    print('Found embeddings for {:.2%} of all text'.format(k / (k + i)))
+    print("Found embeddings for {:.2%} of vocab".format(len(a) / len(vocab)))
+    print("Found embeddings for {:.2%} of all text".format(k / (k + i)))
 
     sorted_x = sorted(oov.items(), key=operator.itemgetter(1))[::-1]
 
@@ -89,33 +88,34 @@ def clean_text(string):
     return string.strip().lower()
 
 
-train = file2DataFrame('./data/sst2_dataset')
+train = file2DataFrame("./data/sst2_dataset")
 
-sentences = train['text'].progress_apply(lambda x: x.split()).values
+sentences = train["text"].progress_apply(lambda x: x.split()).values
 vocab = build_vocab(sentences)
 
-print('Loading word2vec model')
+print("Loading word2vec model")
 start = time.time()
 
 embeddings_index = KeyedVectors.load_word2vec_format(
-    '.\\data\\word2vec\\GoogleNews-vectors-negative300.bin', binary=True)
+    ".\\data\\word2vec\\GoogleNews-vectors-negative300.bin", binary=True
+)
 
-print('Loaded word2vec model in %f seconds' % (time.time() - start))
-print('no processing')
+print("Loaded word2vec model in %f seconds" % (time.time() - start))
+print("no processing")
 print(len(vocab))
 oov = check_coverage(vocab, embeddings_index)
 
-print('preprocessing')
+print("preprocessing")
 
-train['text'] = train['text'].progress_apply(lambda x: clean_text(x))
-sentences = train['text'].apply(lambda x: x.split())
+train["text"] = train["text"].progress_apply(lambda x: clean_text(x))
+sentences = train["text"].apply(lambda x: x.split())
 
 vocab = build_vocab(sentences)
 
 print(len(vocab))
 oov = check_coverage(vocab, embeddings_index)
 
-print('reducing embedding matrix to required vocabulary')
+print("reducing embedding matrix to required vocabulary")
 
 valid_words_dim = len(vocab) + 1  # for <UNK> <EOF>
 
@@ -134,24 +134,25 @@ for word in vocab.keys():
         valid_word_index_map[word] = valid_word_index
         valid_word_index = valid_word_index + 1
     else:
-        embeddings_matrix[valid_word_index] = np.random.uniform(-0.25,0.25,300)
+        embeddings_matrix[valid_word_index] = np.random.uniform(-0.25, 0.25, 300)
         valid_words.append(word)
         valid_word_index_map[word] = valid_word_index
         valid_word_index = valid_word_index + 1
 
-valid_words.append('<EOF>')
-embeddings_matrix[valid_word_index] = np.zeros(shape=(300, ), dtype=np.float32)
-valid_word_index_map['<EOF>'] = valid_word_index
+valid_words.append("<EOF>")
+embeddings_matrix[valid_word_index] = np.zeros(shape=(300,), dtype=np.float32)
+valid_word_index_map["<EOF>"] = valid_word_index
 
-with open('.\\data\processed_data\\embeddings300_sst2.pkl', 'wb') as f:
+with open(".\\data\processed_data\\embeddings300_sst2.pkl", "wb") as f:
     pk.dump(embeddings_matrix, f)
 
-with open('.\\data\processed_data\\word2index_sst2.pkl', 'wb') as f:
+with open(".\\data\processed_data\\word2index_sst2.pkl", "wb") as f:
     pk.dump(valid_word_index_map, f)
 
-_sentences = [' '.join(sentence) for sentence in sentences]
+_sentences = [" ".join(sentence) for sentence in sentences]
 
 train_df = pd.DataFrame(
-    {'text': _sentences, 'target': train['target']}, columns=['text', 'target'])
+    {"text": _sentences, "target": train["target"]}, columns=["text", "target"]
+)
 
-train_df.to_csv('.\\data\\processed_data\\sst2.csv', index=False)
+train_df.to_csv(".\\data\\processed_data\\sst2.csv", index=False)

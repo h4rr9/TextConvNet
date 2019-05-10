@@ -14,8 +14,8 @@ tqdm.pandas()
 def file2DataFrame(path):
     "saves subjectivity dataset into a csv for easy processing"
 
-    sub_file = open(path + '\\quote.tok.gt9.5000')
-    obj_file = open(path + '\\plot.tok.gt9.5000')
+    sub_file = open(path + "\\quote.tok.gt9.5000")
+    obj_file = open(path + "\\plot.tok.gt9.5000")
 
     sub_sentences = [line.strip() for line in sub_file]
     obj_sentences = [line.strip() for line in obj_file]
@@ -27,8 +27,9 @@ def file2DataFrame(path):
     subjectivity = np.zeros(shape=(2 * no_class_samples), dtype=np.float32)
     subjectivity[:no_class_samples] = 1
 
-    data = pd.DataFrame({'text': sentences, 'target': subjectivity},
-                        columns=['text', 'target'])
+    data = pd.DataFrame(
+        {"text": sentences, "target": subjectivity}, columns=["text", "target"]
+    )
 
     return data
 
@@ -66,8 +67,8 @@ def check_coverage(vocab, embeddings_index):
             i += vocab[word]
             pass
 
-    print('Found embeddings for {:.2%} of vocab'.format(len(a) / len(vocab)))
-    print('Found embeddings for {:.2%} of all text'.format(k / (k + i)))
+    print("Found embeddings for {:.2%} of vocab".format(len(a) / len(vocab)))
+    print("Found embeddings for {:.2%} of all text".format(k / (k + i)))
 
     sorted_x = sorted(oov.items(), key=operator.itemgetter(1))[::-1]
 
@@ -76,12 +77,12 @@ def check_coverage(vocab, embeddings_index):
 
 def clean_text(string):
     string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-    string = re.sub(r"\'s", " \'s", string)
-    string = re.sub(r"\'ve", " \'ve", string)
-    string = re.sub(r"n\'t", " n\'t", string)
-    string = re.sub(r"\'re", " \'re", string)
-    string = re.sub(r"\'d", " \'d", string)
-    string = re.sub(r"\'ll", " \'ll", string)
+    string = re.sub(r"\'s", " 's", string)
+    string = re.sub(r"\'ve", " 've", string)
+    string = re.sub(r"n\'t", " n't", string)
+    string = re.sub(r"\'re", " 're", string)
+    string = re.sub(r"\'d", " 'd", string)
+    string = re.sub(r"\'ll", " 'll", string)
     string = re.sub(r",", " , ", string)
     string = re.sub(r"!", " ! ", string)
     string = re.sub(r"\(", " \( ", string)
@@ -92,27 +93,28 @@ def clean_text(string):
     return string.strip()
 
 
-print('Loading word2vec model')
+print("Loading word2vec model")
 start = time.time()
 
 embeddings_index = KeyedVectors.load_word2vec_format(
-    '.\\data\\word2vec\\GoogleNews-vectors-negative300.bin', binary=True)
+    ".\\data\\word2vec\\GoogleNews-vectors-negative300.bin", binary=True
+)
 
-print('Loaded word2vec model in %f seconds' % (time.time() - start))
+print("Loaded word2vec model in %f seconds" % (time.time() - start))
 
-train = file2DataFrame('.\\data\\subjectivity_dataset')
+train = file2DataFrame(".\\data\\subjectivity_dataset")
 
 # no processing
-sentences = train['text'].progress_apply(lambda x: x.split()).values
+sentences = train["text"].progress_apply(lambda x: x.split()).values
 vocab = build_vocab(sentences)
 
-print('no processing')
+print("no processing")
 oov = check_coverage(vocab, embeddings_index)
 
-print('preprocessing')
+print("preprocessing")
 
-train['text'] = train['text'].progress_apply(lambda x: clean_text(x))
-sentences = train['text'].apply(lambda x: x.split())
+train["text"] = train["text"].progress_apply(lambda x: clean_text(x))
+sentences = train["text"].apply(lambda x: x.split())
 
 vocab = build_vocab(sentences)
 
@@ -120,7 +122,7 @@ print(len(vocab))
 oov = check_coverage(vocab, embeddings_index)
 
 # creating all required pickle and csv files
-print('reducing embedding matrix to required vocabulary')
+print("reducing embedding matrix to required vocabulary")
 
 valid_words_dim = len(vocab) + 1  # for <EOF>
 
@@ -138,24 +140,25 @@ for word in vocab.keys():
         valid_word_index_map[word] = valid_word_index
         valid_word_index = valid_word_index + 1
     else:
-        embeddings_matrix[valid_word_index] = np.random.uniform(-0.25,0.25,300)
+        embeddings_matrix[valid_word_index] = np.random.uniform(-0.25, 0.25, 300)
         valid_words.append(word)
         valid_word_index_map[word] = valid_word_index
         valid_word_index = valid_word_index + 1
 
-valid_words.append('<EOF>')
-embeddings_matrix[valid_word_index] = np.zeros(shape=(300, ), dtype=np.float32)
-valid_word_index_map['<EOF>'] = valid_word_index
+valid_words.append("<EOF>")
+embeddings_matrix[valid_word_index] = np.zeros(shape=(300,), dtype=np.float32)
+valid_word_index_map["<EOF>"] = valid_word_index
 
-with open('.\\data\processed_data\\embeddings300_subjectivity.pkl', 'wb') as f:
+with open(".\\data\processed_data\\embeddings300_subjectivity.pkl", "wb") as f:
     pk.dump(embeddings_matrix, f)
 
-with open('.\\data\processed_data\\word2index_subjectivity.pkl', 'wb') as f:
+with open(".\\data\processed_data\\word2index_subjectivity.pkl", "wb") as f:
     pk.dump(valid_word_index_map, f)
 
-_sentences = [' '.join(sentence) for sentence in sentences]
+_sentences = [" ".join(sentence) for sentence in sentences]
 
 train_df = pd.DataFrame(
-    {'text': _sentences, 'target': train['target']}, columns=['text', 'target'])
+    {"text": _sentences, "target": train["target"]}, columns=["text", "target"]
+)
 
-train_df.to_csv('.\\data\\processed_data\\subjectivity.csv', index=False)
+train_df.to_csv(".\\data\\processed_data\\subjectivity.csv", index=False)
