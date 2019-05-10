@@ -12,7 +12,6 @@ PATH_GRAPHS = "./graphs"
 # PATH_GRAPHS = '/scratch/scratch5/harig/tcNet_sub/graphs'
 
 PATH_BEST_WEIGHTS = "./best_weights"
-# PATH_BEST_WEIGHTS = '../Trained Weights/tc-sub-data/checkpoints'
 
 DATASET = "sub"
 
