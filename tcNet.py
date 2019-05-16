@@ -13,7 +13,7 @@ PATH_GRAPHS = "./graphs"
 
 PATH_BEST_WEIGHTS = "./best_weights"
 
-DATASET = "sub"
+DATASET = "sst2"
 
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = 4
